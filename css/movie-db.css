@@ -1,0 +1,33 @@
+#mdb-movie-box-office table,
+#mdb-movie-details table,
+#mdb-movie-crew table,
+#mdb-movie-cast table, 
+.fullwidth {
+	width: 100%;
+}
+#mdb-movie-details th,
+#mdb-movie-box-office th,
+#mdb-movie-crew th,
+#mdb-movie-cast th {
+	text-align: left;
+	vertical-align: top;
+	width: 150px;
+}
+.desc {
+	font-size: 11px;
+	color: #666;
+	font-style: italic;
+}
+#official-sites-input-list {
+	margin: 0;
+}
+
+#mdb-movie-crew .thumb,
+#mdb-movie-cast .thumb {
+	width: 60px;
+}
+
+.crew_list_resizer,
+.cast_list_resizer {
+	width: 70px;
+}
