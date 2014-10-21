@@ -40,8 +40,7 @@ function mdb_debug( $data, $var_dump = false ){
 function mdb_activated(){
 	global $wpdb;
 	
-	$wpdb->query("
-		CREATE TABLE IF NOT EXISTS `{$wpdb->prefix}movie_cast_n_crew` (
+	$wpdb->query("CREATE TABLE IF NOT EXISTS `{$wpdb->prefix}movie_cast_n_crew` (
 		  `ID` int(11) unsigned NOT NULL AUTO_INCREMENT,
 		  `movie` int(11) unsigned NOT NULL,
 		  `profile` int(11) unsigned NOT NULL,
