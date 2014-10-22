@@ -480,7 +480,7 @@ function mdb_get_profile_thumb( $post_id ){
  */
 function mdb_movie_crew_metabox_content(){
 	global $post, $wpdb;
-
+	
 	$crews = $wpdb->get_results( "SELECT * FROM `{$wpdb->prefix}movie_cast_n_crew` 
 			WHERE `movie`='$post->ID' AND `type`='crew';" );
 ?>
@@ -557,12 +557,12 @@ function mdb_movie_crew_metabox_content(){
  */
 function mdb_movie_cast_metabox_content(){
 	global $post, $wpdb;
-
+	
 	$casts = $wpdb->get_results( "SELECT * FROM `{$wpdb->prefix}movie_cast_n_crew` 
 			WHERE `movie`='$post->ID' AND `type`='cast';" );
 ?>
 	<table id="cast-list">
-			<tbody>
+		<tbody>
 			<?php if ( sizeof( $casts > 0 ) ): ?>
 			<?php $i = 0; ?>
 			<?php foreach ( $casts as $cast_entry ): ?>
@@ -605,25 +605,25 @@ function mdb_movie_cast_metabox_content(){
 				<?php $i++; ?>
 			<?php endforeach ?>
 			<?php else: ?>
-				<tr>
-					<td class="thumb">
-						<img src="<?php echo plugins_url( 'img/mistryman.jpg', __FILE__ ); ?>" alt="Thumbnail" width="50" height="50">
-					</td>
-					<td>
-						<input type="text" name="movie_cast[0][name]" name_format="movie_cast[%d][name]" class="fullwidth mdb-profile" placeholder="Name">
-					</td>
-					<td>
-						<input type="text" name="movie_cast[0][role]" name_format="movie_cast[%d][role]" class="fullwidth" placeholder="Role">
-					</td>
-					<td class="cast_list_resizer">
-						<input type="button" value="+" class="add-artist button">
-						<input type="button" value="-" class="remove-artist button">
-						<input type="hidden" name="movie_cast[0][id]" value="0" name_format="movie_cast[%d][id]" class="profile_id">
-					</td>
-				</tr>
+			<tr>
+				<td class="thumb">
+					<img src="<?php echo plugins_url( 'img/mistryman.jpg', __FILE__ ); ?>" alt="Thumbnail" width="50" height="50">
+				</td>
+				<td>
+					<input type="text" name="movie_cast[0][name]" name_format="movie_cast[%d][name]" class="fullwidth mdb-profile" placeholder="Name">
+				</td>
+				<td>
+					<input type="text" name="movie_cast[0][role]" name_format="movie_cast[%d][role]" class="fullwidth" placeholder="Role">
+				</td>
+				<td class="cast_list_resizer">
+					<input type="button" value="+" class="add-artist button">
+					<input type="button" value="-" class="remove-artist button">
+					<input type="hidden" name="movie_cast[0][id]" value="0" name_format="movie_cast[%d][id]" class="profile_id">
+				</td>
+			</tr>
 			<?php endif; ?>
-			</tbody>
-		</table>
+		</tbody>
+	</table>
 	<?php wp_nonce_field( 'movie_cast', 'movie_cast[nonce]', false ); ?>
 <?php
 
@@ -672,8 +672,9 @@ function mdb_save_movie_meta( $movie ){
 		unset( $_POST['movie_crew']['nonce'] );
 		$crews = $_POST['movie_crew'];
 
+		$wpdb->query( "DELETE FROM `{$wpdb->prefix}movie_cast_n_crew` WHERE `movie`='$movie->ID' AND `type`='crew';");
 		foreach( $crews as $crew ){
-			if( '' != $crew['id'] ){
+			if( '' != $crew['id'] && 0 != $crew['id'] ){
 				$id = $crew['id'];
 			}
 			elseif( strlen( trim( $crew['name'] ) ) >= 3 ){
@@ -683,7 +684,6 @@ function mdb_save_movie_meta( $movie ){
 					'post_status'	=> 'draft' ) );
 			}
 
-			$wpdb->query( "DELETE FROM `{$wpdb->prefix}movie_cast_n_crew` WHERE `movie`='$movie->ID' AND `type`='crew';");
 			$wpdb->query( "INSERT INTO `{$wpdb->prefix}movie_cast_n_crew` (`movie`, `profile`, `role`, `type`)
 				VALUES
 					($movie->ID, $id, '$crew[role]', 'crew');" );
@@ -695,8 +695,9 @@ function mdb_save_movie_meta( $movie ){
 		unset( $_POST['movie_cast']['nonce'] );
 		$crews = $_POST['movie_cast'];
 
+		$wpdb->query( "DELETE FROM `{$wpdb->prefix}movie_cast_n_crew` WHERE `movie`='$movie->ID' AND `type`='cast';");
 		foreach( $crews as $cast ){
-			if( '' != $cast['id'] ){
+			if( '' != $cast['id'] && 0 != $cast['id'] ){
 				$id = $cast['id'];
 			}
 			elseif( strlen( trim( $cast['name'] ) ) >= 3 ){
@@ -706,7 +707,6 @@ function mdb_save_movie_meta( $movie ){
 					'post_status'	=> 'draft' ) );
 			}
 
-			$wpdb->query( "DELETE FROM `{$wpdb->prefix}movie_cast_n_crew` WHERE `movie`='$movie->ID' AND `type`='cast';");
 			$wpdb->query( "INSERT INTO `{$wpdb->prefix}movie_cast_n_crew` (`movie`, `profile`, `role`, `type`)
 				VALUES
 					($movie->ID, $id, '$cast[role]', 'cast');" );
