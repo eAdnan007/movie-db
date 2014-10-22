@@ -1,6 +1,6 @@
 <?php
 /*
-Plugin Name: Movie Database
+Plugin Name: Movie DB
 Plugin URI: http://deviserweb.com
 Description: A plugin to create and maintain movie database
 Version: 1.0
