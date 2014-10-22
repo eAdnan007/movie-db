@@ -479,11 +479,55 @@ function mdb_get_profile_thumb( $post_id ){
  * Output the metabox content for movie crew
  */
 function mdb_movie_crew_metabox_content(){
-	global $post;
+	global $post, $wpdb;
 
+	$crews = $wpdb->get_results( "SELECT * FROM `{$wpdb->prefix}movie_cast_n_crew` 
+			WHERE `movie`='$post->ID' AND `type`='crew';" );
 ?>
 	<table id="crew-list">
 			<tbody>
+				<?php if ( sizeof( $crews > 0 ) ): ?>
+				<?php $i = 0; ?>
+				<?php foreach ( $crews as $crew_entry ): ?>
+					<?php $profile = get_post( $crew_entry->profile ) ?>
+					<tr>
+						<td class="thumb">
+							<img src="<?php echo mdb_get_profile_thumb( $profile->ID ); ?>" alt="Thumbnail" width="50" height="50">
+						</td>
+						<td>
+							<input 
+								type="text" 
+								name="movie_crew[<?php echo $i; ?>][name]" 
+								name_format="movie_crew[%d][name]" 
+								class="fullwidth mdb-profile" 
+								placeholder="Name"
+								value="<?php echo $profile->post_title; ?>">
+						</td>
+						<td>
+							<input 
+								type="text" 
+								name="movie_crew[<?php echo $i; ?>][role]" 
+								name_format="movie_crew[%d][role]" 
+								class="fullwidth" 
+								placeholder="Role"
+								value="<?php echo $crew_entry->role; ?>">
+						</td>
+						<td class="crew_list_resizer">
+							<td class="crew_list_resizer">
+								<input type="button" value="+" class="add-crew button">
+								<input type="button" value="-" class="remove-crew button">
+								<input 
+									type="hidden" 
+									name="movie_crew[<?php echo $i; ?>][id]" 
+									value="<?php echo $profile->ID; ?>" 
+									name_format="movie_crew[%d][id]" 
+									class="profile_id">
+							</td>
+						</td>
+					</tr>
+					<?php $i++; ?>
+				<?php endforeach ?>
+				<?php else: ?>
 				<tr>
 					<td class="thumb">
 						<img src="<?php echo plugins_url( 'img/mistryman.jpg', __FILE__ ); ?>" alt="Thumbnail" width="50" height="50">
@@ -532,6 +576,7 @@ function mdb_movie_cast_metabox_content(){
 						<input type="hidden" name="movie_cast[0][id]" value="0" name_format="movie_cast[%d][id]" class="profile_id">
 					</td>
 				</tr>
+			<?php endif ?>
 			</tbody>
 		</table>
 	<?php wp_nonce_field( 'movie_cast', 'movie_cast[nonce]', false ); ?>
