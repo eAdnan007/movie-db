@@ -453,6 +453,28 @@ function mdb_movie_box_office_metabox_content(){
 
 }
 
+
+/**
+ * To return the url of a profile thumb of a given profile.
+ * 
+ * Simply returns the url of the profile thumb for any cast and crew
+ * Which is the custom size, small-thumb(50x50). It will return link to the
+ * mistryman.jpg file which is the default image if a profile picture is
+ * not available.
+ * 
+ * @param int $post_id Post id of the profile
+ */
+function mdb_get_profile_thumb( $post_id ){
+	if( has_post_thumbnail( $post_id ) ){
+		$thumb = wp_get_attachment_image_src( get_post_thumbnail_id( $post_id ), 'small-thumb' );
+
+		return $thumb[0];
+	}
+
+	return plugins_url( 'img/mistryman.jpg', __FILE__ );
+}
+
+
 /**
  * Output the metabox content for movie crew
  */
@@ -636,8 +658,7 @@ function mdb_get_profiles( $term = null ){
 		$profile = array();
 		$profile['ID']		= $post->ID;
 		$profile['label']	= $post->post_title;
-		$profile_thumb		= wp_get_attachment_image_src( get_post_thumbnail_id( $post->ID ), 'small-thumb' );
-		$profile['thumb']	= $profile_thumb[0];
+		$profile['thumb']	= mdb_get_profile_thumb( $post->ID );
 		
 		// $profiles[] = $post->post_title;
 		$profiles[] = $profile;
