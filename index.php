@@ -403,6 +403,9 @@ function mdb_movie_details_metabox_content(){
  */
 function mdb_movie_box_office_metabox_content(){
 	global $post;
+	$details = get_post_meta( $post->ID, '_movie_box_office', true );
+	$has_data = true;
+	if( !is_array( $details ) ) $has_data = false;
 
 ?>
 	<table>
@@ -410,20 +413,36 @@ function mdb_movie_box_office_metabox_content(){
 			<tr>
 				<th><label for="movie-box-office-budget"><?php _e( 'Budget', 'mdb' ); ?></label></th>
 				<td>
-					<input name="movie_box_office[budget]" type="text" class="fullwidth" id="movie-box-office-budget" value="">
+					<input 
+						name="movie_box_office[budget]" 
+						type="text" 
+						class="fullwidth" 
+						id="movie-box-office-budget" 
+						value="<?php echo $has_data?$details['budget']:''; ?>">
 				</td>
 			</tr>
 			<tr>
 				<th><label for="movie-box-office-opening_weekend"><?php _e( 'Opening Weekend', 'mdb' ); ?></label></th>
 				<td>
-					<input name="movie_box_office[opening_weekend]" type="text" class="fullwidth" id="movie-box-office-opening_weekend" value="">
+					<input 
+						name="movie_box_office[opening_weekend]" 
+						type="text" 
+						class="fullwidth" 
+						id="movie-box-office-opening_weekend" 
+						value="<?php echo $has_data?$details['opening_weekend']:''; ?>">
+
 					<small class="desc"><?php _e( 'Profit in opening weekend.', 'mdb' ); ?></small>
 				</td>
 			</tr>
 			<tr>
 				<th><label for="movie-box-office-gross"><?php _e( 'Gross', 'mdb' ); ?></label></th>
 				<td>
-					<input name="movie_box_office[gross]" type="text" class="fullwidth" id="movie-box-office-gross" value="">
+					<input 
+						name="movie_box_office[gross]" 
+						type="text" 
+						class="fullwidth" 
+						id="movie-box-office-gross" 
+						value="<?php echo $has_data?$details['gross']:''; ?>">
 					<small class="desc"><?php _e( 'Gross profit.', 'mdb' ); ?></small>
 				</td>
 			</tr>
