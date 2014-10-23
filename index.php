@@ -759,36 +759,42 @@ function mdb_save_profile_meta(){
 
 
 /**
- * Provides a list of profiles of similar name for ajax call.
+ * Provides a list of profiles or movies of similar name for ajax call.
  * 
  * @param string $term What the title should be like. It will be collected from $_REQUEST if not specified.
  */
-function mdb_get_profiles( $term = null ){
+function mdb_get_posts_like( $term = null ){
 	if( null == $term ) $term = $_REQUEST['term'];
 
 	header('Content-type: application/json');
+
+	if( 'get-profiles' == $_REQUEST['action'] ) $post_type = 'profile';
+	if( 'get-movies' == $_REQUEST['action'] ) $post_type = 'movie';
 
 	$posts = get_posts(
 		array(
 			'post_status'		=> array( 'publish', 'draft' ),
 			'post_title_like'	=> trim( $term ),
-			'post_type'			=> 'profile',
+			'post_type'			=> $post_type,
 			'suppress_filters'	=> false ) );
 
-	$profiles = array();
+	$custom_posts = array();
 	foreach( $posts as $post ){
-		$profile = array();
-		$profile['ID']		= $post->ID;
-		$profile['label']	= $post->post_title;
-		$profile['thumb']	= mdb_get_profile_thumb( $post->ID );
+		$custom_post = array();
+		$custom_post['ID']		= $post->ID;
+		$custom_post['label']	= $post->post_title;
 		
-		// $profiles[] = $post->post_title;
-		$profiles[] = $profile;
+		if( 'profile' == $post_type ) $custom_post['thumb']		= mdb_get_profile_thumb( $post->ID );
+		if( 'movie' == $post_type ) $custom_post['thumb']		= mdb_get_movie_poster( $post->ID );
+		
+		$custom_posts[] = $custom_post;
 	}
 
-	echo json_encode( $profiles );
+	echo json_encode( $custom_posts );
 	exit;
 }
-add_action( 'wp_ajax_get-profiles', 'mdb_get_profiles' );
-add_action( 'wp_ajax_nopriv_get-profiles', 'mdb_get_profiles' );
+add_action( 'wp_ajax_get-profiles', 'mdb_get_posts_like' );
+add_action( 'wp_ajax_nopriv_get-profiles', 'mdb_get_posts_like' );
+add_action( 'wp_ajax_get-movies', 'mdb_get_posts_like' );
+add_action( 'wp_ajax_nopriv_get-movies', 'mdb_get_posts_like' );
 
