@@ -518,7 +518,7 @@ function mdb_movie_crew_metabox_content(){
 ?>
 	<table id="crew-list">
 			<tbody>
-				<?php if ( sizeof( $crews > 0 ) ): ?>
+				<?php if ( sizeof( $crews ) > 0 ): ?>
 				<?php $i = 0; ?>
 				<?php foreach ( $crews as $crew_entry ): ?>
 					<?php $profile = get_post( $crew_entry->profile ) ?>
@@ -595,7 +595,7 @@ function mdb_movie_cast_metabox_content(){
 ?>
 	<table id="cast-list">
 		<tbody>
-			<?php if ( sizeof( $casts > 0 ) ): ?>
+			<?php if ( sizeof( $casts ) > 0 ): ?>
 			<?php $i = 0; ?>
 			<?php foreach ( $casts as $cast_entry ): ?>
 				<?php $profile = get_post( $cast_entry->profile ) ?>
@@ -686,21 +686,21 @@ add_action( 'save_post', 'mdb_save_meta' );
 function mdb_save_movie_meta( $movie ){
 	global $wpdb;
 
-	if( wp_verify_nonce( $_POST['movie_details']['nonce'], 'movie_details' ) ){
+	if( isset( $_POST['movie_details'] ) && wp_verify_nonce( $_POST['movie_details']['nonce'], 'movie_details' ) ){
 		unset( $_POST['movie_details']['nonce'] );
 		$meta = $_POST['movie_details'];
 
 		update_post_meta( $movie->ID, '_movie_details', $meta );
 	}
 
-	if( wp_verify_nonce( $_POST['movie_box_office']['nonce'], 'movie_box_office' ) ){
+	if( isset( $_POST['movie_box_office'] ) && wp_verify_nonce( $_POST['movie_box_office']['nonce'], 'movie_box_office' ) ){
 		unset( $_POST['movie_box_office']['nonce'] );
 		$meta = $_POST['movie_box_office'];
 
 		update_post_meta( $movie->ID, '_movie_box_office', $meta );
 	}
 
-	if( wp_verify_nonce( $_POST['movie_crew']['nonce'], 'movie_crew' ) ){
+	if( isset( $_POST['movie_crew'] ) && wp_verify_nonce( $_POST['movie_crew']['nonce'], 'movie_crew' ) ){
 		unset( $_POST['movie_crew']['nonce'] );
 		$crews = $_POST['movie_crew'];
 
@@ -723,7 +723,7 @@ function mdb_save_movie_meta( $movie ){
 		}
 	}
 
-	if( wp_verify_nonce( $_POST['movie_cast']['nonce'], 'movie_cast' ) ){
+	if( isset( $_POST['movie_cast'] ) && wp_verify_nonce( $_POST['movie_cast']['nonce'], 'movie_cast' ) ){
 		unset( $_POST['movie_cast']['nonce'] );
 		$crews = $_POST['movie_cast'];
 
