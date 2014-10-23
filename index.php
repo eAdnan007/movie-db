@@ -270,6 +270,38 @@ function mdb_register_things() {
 
 
 	$labels = array(
+		'name'                       => _x( 'Roles', 'taxonomy general name', 'mdb' ),
+		'singular_name'              => _x( 'Role', 'taxonomy singular name', 'mdb' ),
+		'search_items'               => __( 'Search roles', 'mdb' ),
+		'popular_items'              => __( 'Popular roles', 'mdb' ),
+		'all_items'                  => __( 'All roles', 'mdb' ),
+		'parent_item'                => null,
+		'parent_item_colon'          => null,
+		'edit_item'                  => __( 'Edit Role', 'mdb' ),
+		'update_item'                => __( 'Update Role', 'mdb' ),
+		'add_new_item'               => __( 'Add New Role', 'mdb' ),
+		'new_item_name'              => __( 'New Role Name' ),
+		'separate_items_with_commas' => __( 'Separate roles with commas', 'mdb' ),
+		'add_or_remove_items'        => __( 'Add or remove roles', 'mdb' ),
+		'choose_from_most_used'      => __( 'Choose from the most used roles', 'mdb' ),
+		'not_found'                  => __( 'No roles found.', 'mdb' ),
+		'menu_name'                  => __( 'Roles', 'mdb' ),
+	);
+
+	$args = array(
+		'hierarchical'          	 => false,
+		'labels'                	 => $labels,
+		'show_ui'               	 => true,
+		'show_admin_column'     	 => true,
+		'update_count_callback' 	 => '_update_post_term_count',
+		'query_var'             	 => true,
+		'rewrite'               	 => array( 'slug' => 'role' ),
+	);
+
+	register_taxonomy( 'role', null, $args );
+
+
+	$labels = array(
 		'name' 						 => __( 'Profiles', 'mdb' ),
 		'singular_name' 			 => __( 'Profile', 'mdb' ),
 		'add_new' 					 => __( 'Add New' ),
@@ -297,7 +329,7 @@ function mdb_register_things() {
 		'hierarchical' 				 => false,
 		'show_in_menu'				 => 'edit.php?post_type=movie',
 		'supports' 					 => array( 'title', 'editor', 'excerpt', 'thumbnail' ),
-		'taxonomies' 				 => array( 'genere', 'country', 'language', 'production-company' )
+		'taxonomies' 				 => array( 'role' )
 	); 
 
 	register_post_type( 'profile', $args );
