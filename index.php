@@ -351,10 +351,30 @@ add_action( 'admin_init',  'mdb_change_excerpt_box_title' );
  * Register all metaboxes related to movie database
  */
 function mdb_add_metabox(){
+	/* Metaboxes for Movie post type */
 	add_meta_box( 'mdb-movie-details', __( 'Movie details', 'mdb' ), 'mdb_movie_details_metabox_content', 'movie', 'normal', 'high', null );
 	add_meta_box( 'mdb-movie-box-office', __( 'Box Office', 'mdb' ), 'mdb_movie_box_office_metabox_content', 'movie', 'normal', 'high', null );
 	add_meta_box( 'mdb-movie-crew', __( 'Movie Crew', 'mdb' ), 'mdb_movie_crew_metabox_content', 'movie', 'normal', 'high', null );
 	add_meta_box( 'mdb-movie-cast', __( 'Cast', 'mdb' ), 'mdb_movie_cast_metabox_content', 'movie', 'normal', 'high', null );
+
+	/* Metaboxes for Profile post type */
+	add_meta_box(
+		'mdb-profile-birth-info',
+		__( 'Birth Information', 'mdb' ),
+		'mdb_profile_birth_info_metabox_content',
+		'profile',
+		'normal',
+		'high',
+		null );
+
+	add_meta_box(
+		'mdb-profile-known-for',
+		__( 'Known For', 'mdb' ),
+		'mdb_movie_known_for_metabox_content',
+		'profile',
+		'normal',
+		'high',
+		null );
 }
 add_action( 'add_meta_boxes', 'mdb_add_metabox' );
 
@@ -504,6 +524,28 @@ function mdb_get_profile_thumb( $post_id ){
 	}
 
 	return plugins_url( 'img/mistryman.jpg', __FILE__ );
+}
+
+
+/**
+ * To return the url of a movie poster of a given movie.
+ * 
+ * Simply returns the url of the movie poster for any movie
+ * Which is the custom size, small-thumb(50x50) by default. It will return link to the
+ * defaultposter.jpg file which is the default image if a profile picture is
+ * not available.
+ * 
+ * @param int $post_id Post id of the profile.
+ * @param string $size Media size of the image, not applicable for default poster.
+ */
+function mdb_get_movie_poster( $post_id, $size = 'small-thumb' ){
+	if( has_post_thumbnail( $post_id ) ){
+		$thumb = wp_get_attachment_image_src( get_post_thumbnail_id( $post_id ), $size );
+
+		return $thumb[0];
+	}
+
+	return plugins_url( 'img/defaultposter.jpg', __FILE__ );
 }
 
 
@@ -661,6 +703,136 @@ function mdb_movie_cast_metabox_content(){
 
 }
 
+/**
+ * Output the metabox content for known for metabox in profile post type.
+ */
+function mdb_movie_known_for_metabox_content(){
+	global $post;
+	$known_for = get_post_meta( $post->ID, '_profile_known_for', true );
+?>
+	<table id="known-for-list">
+		<tbody>
+			<?php if( !empty( $known_for ) ): ?>
+			<?php $i = 0; ?>
+			<?php foreach( $known_for as $movie_id ): ?>
+			<?php $movie = get_post( $movie_id ); ?>
+				<tr>
+					<td class="thumb">
+						<img src="<?php echo mdb_get_movie_poster( $movie->ID ); ?>" alt="Thumbnail" width="50" height="50">
+					</td>
+					<td>
+						<input 
+							type="text" 
+							name="profile_known_for[<?php echo $i; ?>][name]" 
+							name_format="profile_known_for[%d][name]" 
+							class="fullwidth mdb-movie" 
+							placeholder="Title"
+							value="<?php echo $movie->post_title; ?>">
+					</td>
+					<td class="movie_list_resizer">
+						<td class="cast_list_resizer">
+							<input type="button" value="+" class="add-movie button">
+							<input type="button" value="-" class="remove-movie button">
+							<input 
+								type="hidden" 
+								name="profile_known_for[<?php echo $i; ?>][id]" 
+								value="<?php echo $movie->ID; ?>" 
+								name_format="profile_known_for[%d][id]" 
+								class="movie_id">
+						</td>
+					</td>
+				</tr>
+				<?php $i++; ?>
+			<?php endforeach ?>
+			<?php else: ?>
+			<tr>
+				<td class="thumb">
+					<img src="<?php echo plugins_url( 'img/defaultposter.jpg', __FILE__ );?>" alt="Thumbnail" width="50" height="50">
+				</td>
+				<td>
+					<input 
+						type="text" 
+						name="profile_known_for[<?php echo $i; ?>][name]" 
+						name_format="profile_known_for[%d][name]" 
+						class="fullwidth mdb-movie" 
+						placeholder="Title"
+						value="">
+				</td>
+				<td class="movie_list_resizer">
+					<td class="cast_list_resizer">
+						<input type="button" value="+" class="add-movie button">
+						<input type="button" value="-" class="remove-movie button">
+						<input 
+							type="hidden" 
+							name="profile_known_for[<?php echo $i; ?>][id]" 
+							value="0" 
+							name_format="profile_known_for[%d][id]" 
+							class="movie_id">
+					</td>
+				</td>
+			</tr>
+			<?php endif; ?>
+		</tbody>
+	</table>
+	<?php wp_nonce_field( 'profile_known_for', 'profile_known_for[nonce]', false ); ?>
+<?php
+
+}
+
+/**
+ * Provides the content for birth info metabox for profile post type
+ * 
+ * This metabox holdes birth related information i.e. Place and Date of birth, Born name for a
+ * movie person.
+ */
+function mdb_profile_birth_info_metabox_content(){
+	global $post;
+	$details = get_post_meta( $post->ID, '_profile_birth_info', true );
+	$has_data = true;
+	if( !is_array( $details ) ) $has_data = false;
+
+?>
+	<table>
+		<tbody>
+			<tr>
+				<th><label for="profile-birth-info-place"><?php _e( 'Birth Place', 'mdb' ); ?></label></th>
+				<td>
+					<input 
+						name="profile_birth_info[place]" 
+						type="text" 
+						class="fullwidth" 
+						id="profile-birth-info-place" 
+						value="<?php echo $has_data?$details['place']:''; ?>">
+				</td>
+			</tr>
+			<tr>
+				<th><label for="profile-birth-info-date"><?php _e( 'Birth Date', 'mdb' ); ?></label></th>
+				<td>
+					<input 
+						name="profile_birth_info[date]" 
+						type="text" 
+						class="fullwidth" 
+						id="profile-birth-info-date" 
+						value="<?php echo $has_data?$details['date']:''; ?>">
+				</td>
+			</tr>
+			<tr>
+				<th><label for="profile-birth-info-born-name"><?php _e( 'Born Name', 'mdb' ); ?></label></th>
+				<td>
+					<input 
+						name="profile_birth_info[born_name]" 
+						type="text" 
+						class="fullwidth" 
+						id="profile-birth-info-born-name" 
+						value="<?php echo $has_data?$details['born_name']:''; ?>">
+				</td>
+			</tr>
+		</tbody>
+	</table>
+	<?php wp_nonce_field( 'profile_birth_info', 'profile_birth_info[nonce]', false ); ?>
+<?php
+}
+
 
 /**
  * Save postmeta for post types created by this plugin.
@@ -753,8 +925,36 @@ function mdb_save_movie_meta( $movie ){
  * 
  * @param object $profile Post object of the profile being saved
  */
-function mdb_save_profile_meta(){
+function mdb_save_profile_meta( $profile ){
+	if( isset( $_POST['profile_birth_info'] ) && wp_verify_nonce( $_POST['profile_birth_info']['nonce'], 'profile_birth_info' ) ){
+		unset( $_POST['profile_birth_info']['nonce'] );
+		$meta = $_POST['profile_birth_info'];
 
+		update_post_meta( $profile->ID, '_profile_birth_info', $meta );
+	}
+
+	if( isset( $_POST['profile_known_for'] ) && wp_verify_nonce( $_POST['profile_known_for']['nonce'], 'profile_known_for' ) ){
+		unset( $_POST['profile_known_for']['nonce'] );
+		$movies = $_POST['profile_known_for'];
+
+		$known_for = array();
+		foreach( $movies as $movie ){
+			if( '' != $movie['id'] && 0 != $movie['id'] ){
+				$id = $movie['id'];
+			}
+			elseif( strlen( trim( $movie['name'] ) ) >= 3 ){
+				$id = wp_insert_post( array(
+					'post_title'	=> trim( $movie['name'] ),
+					'post_type'		=> 'movie',
+					'post_status'	=> 'draft' ) );
+			}
+
+			$known_for[] = $id;
+
+		}
+
+		update_post_meta( $profile->ID, '_profile_known_for', $known_for );
+	}
 }
 
 

@@ -2,13 +2,16 @@
 #mdb-movie-details table,
 #mdb-movie-crew table,
 #mdb-movie-cast table, 
+#mdb-profile-birth-info table, 
+#mdb-profile-known-for table, 
 .fullwidth {
 	width: 100%;
 }
 #mdb-movie-details th,
 #mdb-movie-box-office th,
 #mdb-movie-crew th,
-#mdb-movie-cast th {
+#mdb-movie-cast th,
+#mdb-profile-birth-info th {
 	text-align: left;
 	vertical-align: top;
 	width: 150px;
@@ -23,7 +26,8 @@
 }
 
 #mdb-movie-crew .thumb,
-#mdb-movie-cast .thumb {
+#mdb-movie-cast .thumb ,
+#mdb-profile-known-for .thumb {
 	width: 60px;
 }
 
