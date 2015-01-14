@@ -15,6 +15,8 @@ if($_SERVER['SCRIPT_FILENAME'] == __FILE__)
   exit;
 }
 
+define( 'POST_TYPE', 'movie' );
+
 /**
  * Test any data with this function.
  * 
@@ -55,7 +57,7 @@ register_activation_hook(__FILE__, 'mdb_activated');
  * Add featured image support to movies and profiles
  */
 function mdb_support_featured_image(){
-	add_theme_support( 'post_thumbnails', array( 'movie', 'profile' ) );
+	add_theme_support( 'post_thumbnails', array( POST_TYPE, 'profile' ) );
 	add_image_size( 'small-thumb', 50, 50, true );
 }
 add_action( 'after_setup_theme', 'mdb_support_featured_image' );
@@ -82,6 +84,7 @@ function mdb_admin_enqueue(){
 		'movie-db', 
 		'mdb', 
 		array( 
+			'defaultposter' => plugins_url( 'img/defaultposter.jpg', __FILE__ ),
 			'mistryman'		=> plugins_url( 'img/mistryman.jpg', __FILE__ ),
 			'ajax_url'		=> admin_url( '/admin-ajax.php' ) ) );
 
@@ -89,6 +92,20 @@ function mdb_admin_enqueue(){
 }
 add_action( 'admin_enqueue_scripts', 'mdb_admin_enqueue' );
 
+
+/**
+ * Enqueues js and css for front end
+ */
+function mdb_enqueue(){
+	wp_enqueue_script( 'jquery' );
+	wp_enqueue_script( 'slick', plugins_url( 'js/slick.min.js', __FILE__ ), array('jquery'), '1.3.15' );
+	wp_enqueue_script( 'fancybox', plugins_url( 'js/jquery.fancybox.pack.js', __FILE__ ), array('jquery'), '2.1.5' );
+	wp_enqueue_script( 'collapse', plugins_url( 'js/jquery.collapse.js', __FILE__ ), array('jquery') );
+
+	wp_enqueue_style( 'slick', plugins_url( 'css/slick.css', __FILE__ ) );
+	wp_enqueue_style( 'fancybox', plugins_url( 'css/jquery.fancybox.css', __FILE__ ) );
+}
+add_action( 'wp_enqueue_scripts', 'mdb_enqueue' );
 
 /**
  * Add additional query option to wp query.
@@ -139,7 +156,7 @@ function mdb_register_things() {
 		'rewrite'              		 => array( 'slug' => 'genere' ),
 	);
 
-	register_taxonomy( 'genere', null, $args );
+	register_taxonomy( 'genere', POST_TYPE, $args );
 
 	$labels = array(
 		'name'                       => _x( 'Countries', 'taxonomy general name', 'mdb' ),
@@ -170,7 +187,7 @@ function mdb_register_things() {
 		'rewrite'               	 => array( 'slug' => 'country' ),
 	);
 
-	register_taxonomy( 'country', null, $args );
+	register_taxonomy( 'country', POST_TYPE, $args );
 
 	$labels = array(
 		'name'                       => _x( 'Languages', 'taxonomy general name', 'mdb' ),
@@ -201,7 +218,7 @@ function mdb_register_things() {
 		'rewrite'               	 => array( 'slug' => 'language' ),
 	);
 
-	register_taxonomy( 'language', null, $args );
+	register_taxonomy( 'language', POST_TYPE, $args );
 
 	$labels = array(
 		'name'                       => _x( 'Production Companies', 'taxonomy general name', 'mdb' ),
@@ -232,7 +249,7 @@ function mdb_register_things() {
 		'rewrite'               	 => array( 'slug' => 'production-company' ),
 	);
 
-	register_taxonomy( 'production-company', null, $args );
+	register_taxonomy( 'production-company', POST_TYPE, $args );
 
 	
 	$labels = array(
@@ -266,7 +283,9 @@ function mdb_register_things() {
 		'taxonomies' 				 => array( 'genere', 'country', 'language', 'production-company' )
 	); 
 
-	register_post_type( 'movie', $args );
+	if( 'movie' == POST_TYPE ) register_post_type( 'movie', $args );
+
+
 
 
 	$labels = array(
@@ -327,7 +346,7 @@ function mdb_register_things() {
 		'capability_type' 			 => 'post',
 		'has_archive' 				 => true, 
 		'hierarchical' 				 => false,
-		'show_in_menu'				 => 'edit.php?post_type=movie',
+		'show_in_menu'				 => POST_TYPE == 'post' ? 'edit.php' : 'edit.php?post_type='.POST_TYPE,
 		'supports' 					 => array( 'title', 'editor', 'excerpt', 'thumbnail' ),
 		'taxonomies' 				 => array( 'role' )
 	); 
@@ -344,7 +363,7 @@ function mdb_change_excerpt_box_title() {
 	remove_meta_box( 'postexcerpt', 'movie', 'side' );
 	add_meta_box('postexcerpt', __( 'Summery', 'mdb' ), 'post_excerpt_meta_box', 'movie', 'normal', 'high');
 }
-add_action( 'admin_init',  'mdb_change_excerpt_box_title' );
+if( 'movie' == POST_TYPE ) add_action( 'admin_init',  'mdb_change_excerpt_box_title' );
 
 
 /**
@@ -352,10 +371,10 @@ add_action( 'admin_init',  'mdb_change_excerpt_box_title' );
  */
 function mdb_add_metabox(){
 	/* Metaboxes for Movie post type */
-	add_meta_box( 'mdb-movie-details', __( 'Movie details', 'mdb' ), 'mdb_movie_details_metabox_content', 'movie', 'normal', 'high', null );
-	add_meta_box( 'mdb-movie-box-office', __( 'Box Office', 'mdb' ), 'mdb_movie_box_office_metabox_content', 'movie', 'normal', 'high', null );
-	add_meta_box( 'mdb-movie-crew', __( 'Movie Crew', 'mdb' ), 'mdb_movie_crew_metabox_content', 'movie', 'normal', 'high', null );
-	add_meta_box( 'mdb-movie-cast', __( 'Cast', 'mdb' ), 'mdb_movie_cast_metabox_content', 'movie', 'normal', 'high', null );
+	add_meta_box( 'mdb-movie-details', __( 'Movie details', 'mdb' ), 'mdb_movie_details_metabox_content', POST_TYPE, 'normal', 'high', null );
+	add_meta_box( 'mdb-movie-box-office', __( 'Box Office', 'mdb' ), 'mdb_movie_box_office_metabox_content', POST_TYPE, 'normal', 'high', null );
+	add_meta_box( 'mdb-movie-crew', __( 'Movie Crew', 'mdb' ), 'mdb_movie_crew_metabox_content', POST_TYPE, 'normal', 'high', null );
+	add_meta_box( 'mdb-movie-cast', __( 'Cast', 'mdb' ), 'mdb_movie_cast_metabox_content', POST_TYPE, 'normal', 'high', null );
 
 	/* Metaboxes for Profile post type */
 	add_meta_box(
@@ -392,6 +411,20 @@ function mdb_movie_details_metabox_content(){
 	<table>
 		<tbody>
 			<tr>
+				<th><label for="movie-details-trailer"><?php _e( 'Movie Trailer', 'mdb' ); ?></label></th>
+				<td>
+					<input name="movie_details[trailer]" type="text" class="fullwidth" id="movie-details-trailer" value="<?php echo $has_data?$details['trailer']:''; ?>">
+					<small class="desc"><?php _e( 'Link to movie trailer, i.e. on youtube.', 'mdb' ); ?></small>
+				</td>
+			</tr>
+			<tr>
+				<th><label for="movie-details-release"><?php _e( 'First Release', 'mdb' ); ?></label></th>
+				<td>
+					<input name="movie_details[release]" type="text" class="fullwidth" id="movie-details-release" value="<?php echo $has_data?$details['release']:''; ?>">
+					<small class="desc"><?php _e( 'When and where the movie was first released.', 'mdb' ); ?></small>
+				</td>
+			</tr>
+			<tr>
 				<th><label for="movie-details-year"><?php _e( 'Year', 'mdb' ); ?></label></th>
 				<td>
 					<input name="movie_details[year]" type="text" class="fullwidth" id="movie-details-year" value="<?php echo $has_data?$details['year']:''; ?>">
@@ -415,14 +448,14 @@ function mdb_movie_details_metabox_content(){
 							<li>
 								<input 
 									type="text" 
-									placeholder="Name" 
+									placeholder="<?php _e('Name', 'mdb'); ?>" 
 									name="movie_details[official-sites][<?php echo $i; ?>][name]" 
 									class="small-input" 
 									name_format="movie_details[official-sites][%d][name]" 
 									value="<?php echo $site['name']; ?>">
 								<input 
 									type="text" 
-									placeholder="URL" 
+									placeholder="<?php _e('URL', 'mdb'); ?>" 
 									name="movie_details[official-sites][<?php echo $i; ?>][value]" 
 									class="learge-input" 
 									name_format="movie_details[official-sites][%d][value]" 
@@ -434,8 +467,8 @@ function mdb_movie_details_metabox_content(){
 						<?php endforeach; ?>
 						<?php else: ?>
 							<li>
-								<input type="text" placeholder="Name" name="movie_details[official-sites][0][name]" class="small-input" name_format="movie_details[official-sites][%d][name]">
-								<input type="text" placeholder="URL" name="movie_details[official-sites][0][value]" class="learge-input" name_format="movie_details[official-sites][%d][value]">
+								<input type="text" placeholder="<?php _e('Name', 'mdb'); ?>" name="movie_details[official-sites][0][name]" class="small-input" name_format="movie_details[official-sites][%d][name]">
+								<input type="text" placeholder="<?php _e('URL', 'mdb'); ?>" name="movie_details[official-sites][0][value]" class="learge-input" name_format="movie_details[official-sites][%d][value]">
 								<input type="button" value="+" class="add-site button">
 								<input type="button" value="-" class="remove-site button">
 							</li>
@@ -574,7 +607,7 @@ function mdb_movie_crew_metabox_content(){
 								name="movie_crew[<?php echo $i; ?>][name]" 
 								name_format="movie_crew[%d][name]" 
 								class="fullwidth mdb-profile" 
-								placeholder="Name"
+								placeholder="<?php _e( 'Name', 'mdb' ); ?>"
 								value="<?php echo $profile->post_title; ?>">
 						</td>
 						<td>
@@ -583,20 +616,27 @@ function mdb_movie_crew_metabox_content(){
 								name="movie_crew[<?php echo $i; ?>][role]" 
 								name_format="movie_crew[%d][role]" 
 								class="fullwidth" 
-								placeholder="Role"
+								placeholder="<?php _e( 'Role', 'mdb' ); ?>"
 								value="<?php echo $crew_entry->role; ?>">
 						</td>
+						<td>
+							<input 
+								type="text" 
+								name="movie_crew[<?php echo $i; ?>][task]" 
+								name_format="movie_crew[%d][task]" 
+								class="fullwidth" 
+								placeholder="<?php _e( 'Task (optional)', 'mdb' ); ?>"
+								value="<?php echo $crew_entry->task; ?>">
+						</td>
 						<td class="crew_list_resizer">
-							<td class="crew_list_resizer">
-								<input type="button" value="+" class="add-crew button">
-								<input type="button" value="-" class="remove-crew button">
-								<input 
-									type="hidden" 
-									name="movie_crew[<?php echo $i; ?>][id]" 
-									value="<?php echo $profile->ID; ?>" 
-									name_format="movie_crew[%d][id]" 
-									class="profile_id">
-							</td>
+							<input type="button" value="+" class="add-crew button">
+							<input type="button" value="-" class="remove-crew button">
+							<input 
+								type="hidden" 
+								name="movie_crew[<?php echo $i; ?>][id]" 
+								value="<?php echo $profile->ID; ?>" 
+								name_format="movie_crew[%d][id]" 
+								class="profile_id">
 						</td>
 					</tr>
 					<?php $i++; ?>
@@ -607,10 +647,13 @@ function mdb_movie_crew_metabox_content(){
 						<img src="<?php echo plugins_url( 'img/mistryman.jpg', __FILE__ ); ?>" alt="Thumbnail" width="50" height="50">
 					</td>
 					<td>
-						<input type="text" name="movie_crew[0][name]" name_format="movie_crew[%d][name]" class="fullwidth mdb-profile" placeholder="Name">
+						<input type="text" name="movie_crew[0][name]" name_format="movie_crew[%d][name]" class="fullwidth mdb-profile" placeholder="<?php _e( 'Name', 'mdb' ); ?>">
 					</td>
 					<td>
-						<input type="text" name="movie_crew[0][role]" name_format="movie_crew[%d][role]" class="fullwidth" placeholder="Role">
+						<input type="text" name="movie_crew[0][role]" name_format="movie_crew[%d][role]" class="fullwidth" placeholder="<?php _e( 'Role', 'mdb' ); ?>">
+					</td>
+					<td>
+						<input type="text" name="movie_crew[0][task]" name_format="movie_crew[%d][task]" class="fullwidth" placeholder="<?php _e( 'Task (optional)', 'mdb' ); ?>">
 					</td>
 					<td class="crew_list_resizer">
 						<input type="button" value="+" class="add-crew button">
@@ -647,11 +690,19 @@ function mdb_movie_cast_metabox_content(){
 					</td>
 					<td>
 						<input 
+							type="checkbox" 
+							name="movie_cast[<?php echo $i; ?>][featured]" 
+							name_format="movie_cast[%d][featured]" 
+							title="<?php _e( 'Featured', 'appex' ); ?>" 
+							<?php echo $cast_entry->featured == 1 ? 'checked="checked"': ''; ?>>
+					</td>
+					<td>
+						<input 
 							type="text" 
 							name="movie_cast[<?php echo $i; ?>][name]" 
 							name_format="movie_cast[%d][name]" 
 							class="fullwidth mdb-profile" 
-							placeholder="Name"
+							placeholder="<?php _e('Name', 'mdb'); ?>"
 							value="<?php echo $profile->post_title; ?>">
 					</td>
 					<td>
@@ -660,7 +711,7 @@ function mdb_movie_cast_metabox_content(){
 							name="movie_cast[<?php echo $i; ?>][role]" 
 							name_format="movie_cast[%d][role]" 
 							class="fullwidth" 
-							placeholder="Role"
+							placeholder="<?php _e('Role', 'mdb'); ?>"
 							value="<?php echo $cast_entry->role; ?>">
 					</td>
 					<td class="cast_list_resizer">
@@ -681,13 +732,20 @@ function mdb_movie_cast_metabox_content(){
 			<?php else: ?>
 			<tr>
 				<td class="thumb">
-					<img src="<?php echo plugins_url( 'img/mistryman.jpg', __FILE__ ); ?>" alt="Thumbnail" width="50" height="50">
+					<img src="<?php echo plugins_url( 'img/mistryman.jpg', __FILE__ ); ?>" alt="<?php _e('Thumbnail', 'mdb'); ?>" width="50" height="50">
 				</td>
 				<td>
-					<input type="text" name="movie_cast[0][name]" name_format="movie_cast[%d][name]" class="fullwidth mdb-profile" placeholder="Name">
+					<input 
+						type="checkbox" 
+						name="movie_cast[0][featured]" 
+						name_format="movie_cast[%d][featured]" 
+						title="<?php _e( 'Featured', 'appex' ); ?>">
 				</td>
 				<td>
-					<input type="text" name="movie_cast[0][role]" name_format="movie_cast[%d][role]" class="fullwidth" placeholder="Role">
+					<input type="text" name="movie_cast[0][name]" name_format="movie_cast[%d][name]" class="fullwidth mdb-profile" placeholder="<?php _e('Name', 'mdb'); ?>">
+				</td>
+				<td>
+					<input type="text" name="movie_cast[0][role]" name_format="movie_cast[%d][role]" class="fullwidth" placeholder="<?php _e('Role', 'mdb'); ?>">
 				</td>
 				<td class="cast_list_resizer">
 					<input type="button" value="+" class="add-artist button">
@@ -844,10 +902,34 @@ function mdb_profile_birth_info_metabox_content(){
 function mdb_save_meta( $post_id ) {
 	$post = get_post( $post_id );
 
-	if( 'movie' == $post->post_type ) mdb_save_movie_meta( $post );
+	if( POST_TYPE == $post->post_type ){
+		mdb_save_movie_meta( $post );
+		mdb_create_message_board( $post );
+	}
 	if( 'profile' == $post->post_type ) mdb_save_profile_meta( $post );
 }
 add_action( 'save_post', 'mdb_save_meta' );
+
+
+/**
+ * Creates a messaging board.
+ * 
+ * Create message board/bbPress forum for each movie when the message is first created.
+ * @param object $post WP Post object for the submitted post.
+ */
+function mdb_create_message_board( $post ){
+	$forum_id = get_post_meta( $post->ID, '_mdb_message_board_id', true );
+
+	if( '' == $forum_id && 'publish' == $post->post_status  ){
+		$forum_id = wp_insert_post( array(
+			'post_title'    => $post->post_title,
+			'post_type'     => 'forum',
+			'post_status'   => 'publish' ) );
+
+		add_post_meta( $forum_id, '_mdb_movie_id', $post->ID );
+		add_post_meta( $post->ID, '_mdb_message_board_id', $forum_id );
+	}
+}
 
 
 /**
@@ -888,19 +970,22 @@ function mdb_save_movie_meta( $movie ){
 					'post_status'	=> 'draft' ) );
 			}
 
-			$wpdb->query( "INSERT INTO `{$wpdb->prefix}movie_cast_n_crew` (`movie`, `profile`, `role`, `type`)
-				VALUES
-					($movie->ID, $id, '$crew[role]', 'crew');" );
+			if( isset( $id ) ){
+				$wpdb->query( "INSERT INTO `{$wpdb->prefix}movie_cast_n_crew` (`movie`, `profile`, `role`, `type`, `task`)
+					VALUES
+						($movie->ID, $id, '$crew[role]', 'crew', '$crew[task]');" );
+				unset( $id );
+			}
 
 		}
 	}
 
 	if( isset( $_POST['movie_cast'] ) && wp_verify_nonce( $_POST['movie_cast']['nonce'], 'movie_cast' ) ){
 		unset( $_POST['movie_cast']['nonce'] );
-		$crews = $_POST['movie_cast'];
+		$casts = $_POST['movie_cast'];
 
 		$wpdb->query( "DELETE FROM `{$wpdb->prefix}movie_cast_n_crew` WHERE `movie`='$movie->ID' AND `type`='cast';");
-		foreach( $crews as $cast ){
+		foreach( $casts as $cast ){
 			if( '' != $cast['id'] && 0 != $cast['id'] ){
 				$id = $cast['id'];
 			}
@@ -911,9 +996,14 @@ function mdb_save_movie_meta( $movie ){
 					'post_status'	=> 'draft' ) );
 			}
 
-			$wpdb->query( "INSERT INTO `{$wpdb->prefix}movie_cast_n_crew` (`movie`, `profile`, `role`, `type`)
-				VALUES
-					($movie->ID, $id, '$cast[role]', 'cast');" );
+			if( isset( $id ) ){
+				$featured = isset( $cast['featured'] ) && $cast['featured'] == 'on' ? 1 : 0;
+
+				$wpdb->query( "INSERT INTO `{$wpdb->prefix}movie_cast_n_crew` (`movie`, `profile`, `role`, `type`, `featured`)
+					VALUES
+						($movie->ID, $id, '$cast[role]', 'cast', '$featured');" );
+				unset( $id );
+			}
 
 		}
 	}
@@ -939,17 +1029,19 @@ function mdb_save_profile_meta( $profile ){
 
 		$known_for = array();
 		foreach( $movies as $movie ){
-			if( '' != $movie['id'] && 0 != $movie['id'] ){
+			if( isset( $movie['id'] ) && '' != $movie['id'] && 0 != $movie['id'] ){
 				$id = $movie['id'];
+				$known_for[] = $id;
 			}
-			elseif( strlen( trim( $movie['name'] ) ) >= 3 ){
+			elseif( isset( $movie['name'] ) && strlen( trim( $movie['name'] ) ) >= 3 ){
 				$id = wp_insert_post( array(
 					'post_title'	=> trim( $movie['name'] ),
 					'post_type'		=> 'movie',
 					'post_status'	=> 'draft' ) );
+				
+				$known_for[] = $id;
 			}
 
-			$known_for[] = $id;
 
 		}
 
@@ -969,7 +1061,7 @@ function mdb_get_posts_like( $term = null ){
 	header('Content-type: application/json');
 
 	if( 'get-profiles' == $_REQUEST['action'] ) $post_type = 'profile';
-	if( 'get-movies' == $_REQUEST['action'] ) $post_type = 'movie';
+	if( 'get-movies' == $_REQUEST['action'] ) $post_type = POST_TYPE;
 
 	$posts = get_posts(
 		array(
@@ -985,7 +1077,7 @@ function mdb_get_posts_like( $term = null ){
 		$custom_post['label']	= $post->post_title;
 		
 		if( 'profile' == $post_type ) $custom_post['thumb']		= mdb_get_profile_thumb( $post->ID );
-		if( 'movie' == $post_type ) $custom_post['thumb']		= mdb_get_movie_poster( $post->ID );
+		if( POST_TYPE == $post_type ) $custom_post['thumb']		= mdb_get_movie_poster( $post->ID );
 		
 		$custom_posts[] = $custom_post;
 	}
@@ -997,4 +1089,34 @@ add_action( 'wp_ajax_get-profiles', 'mdb_get_posts_like' );
 add_action( 'wp_ajax_nopriv_get-profiles', 'mdb_get_posts_like' );
 add_action( 'wp_ajax_get-movies', 'mdb_get_posts_like' );
 add_action( 'wp_ajax_nopriv_get-movies', 'mdb_get_posts_like' );
+
+
+/**
+ * Row data from database query to get filmography information of a profile.
+ */
+function mdb_get_filmography_data( $post = null ){
+	if( null == $post ) global $post;
+	if( is_integer( $post ) ) $post = get_post( $post );
+
+	global $wpdb;
+
+	$results = $wpdb->get_results( "SELECT * FROM {$wpdb->prefix}movie_cast_n_crew WHERE profile='$post->ID' ORDER BY type DESC" );
+
+	$data = array();
+	foreach( $results as $result ){
+		$set = $result->role;
+
+		if( '' == $result->role ) $set = 'Miscellaneous';
+		if( 'cast' == $result->type ) $set = 'Artist';
+
+		$data[$set][] = $result; // Just grouping rows by roles
+	}
+
+	return $data;
+}
+
+
+
+
+
 

@@ -29,7 +29,7 @@ jQuery(document).ready(function($){
 		btn_add: '.add-movie',
 		btn_del: '.remove-movie',
 		after_add: function(){
-			$('#known-for-list tbody tr:last-child .thumb img').attr('src', mdb.mistryman );
+			$('#known-for-list tbody tr:last-child .thumb img').attr('src', mdb.defaultposter );
 			// $( ".mdb-profile" ).autocomplete( "destroy" );
 			set_autocomplete_movie();
 		}
@@ -58,7 +58,7 @@ jQuery(document).ready(function($){
 				$(this).parent().parent().children('.movie_list_resizer').children('.movie_id').val( 0 );
 			}
 		})
-		.autocomplete( "instance" )._renderItem = function( ul, item ) {
+		._renderItem = function( ul, item ) {
 			return $( "<li>" )
 			.append( "<a>" + item.label + "</a>" )
 			.appendTo( ul );
