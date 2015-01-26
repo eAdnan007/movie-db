@@ -15,7 +15,15 @@ if($_SERVER['SCRIPT_FILENAME'] == __FILE__)
   exit;
 }
 
-define( 'POST_TYPE', 'movie' );
+define( 'POST_TYPE', 'post' );
+
+/**
+ * Do things that are needed to be done on plugin init.
+ */
+function mdb_init(){
+	add_image_size( 'poster-thumbnail', 160, 237, false );
+}
+add_action( 'init', 'mdb_init' );
 
 /**
  * Test any data with this function.
@@ -101,9 +109,12 @@ function mdb_enqueue(){
 	wp_enqueue_script( 'slick', plugins_url( 'js/slick.min.js', __FILE__ ), array('jquery'), '1.3.15' );
 	wp_enqueue_script( 'fancybox', plugins_url( 'js/jquery.fancybox.pack.js', __FILE__ ), array('jquery'), '2.1.5' );
 	wp_enqueue_script( 'collapse', plugins_url( 'js/jquery.collapse.js', __FILE__ ), array('jquery') );
+	wp_enqueue_script( 'readmore', plugins_url( 'js/readmore.min.js', __FILE__ ), array('jquery') );
+	// wp_enqueue_script( 'owl-carousel', plugins_url( 'js/owl.carousel.min.js', __FILE__ ), array('jquery'), '1.3.3' );
 
 	wp_enqueue_style( 'slick', plugins_url( 'css/slick.css', __FILE__ ) );
 	wp_enqueue_style( 'fancybox', plugins_url( 'css/jquery.fancybox.css', __FILE__ ) );
+	// wp_enqueue_style( 'owl-carousel', plugins_url( 'css/owl.carousel.css', __FILE__ ) );
 }
 add_action( 'wp_enqueue_scripts', 'mdb_enqueue' );
 
@@ -279,7 +290,7 @@ function mdb_register_things() {
 		'has_archive' 				 => true, 
 		'hierarchical' 				 => false,
 		'menu_icon'					 => 'dashicons-video-alt',
-		'supports' 					 => array( 'title', 'editor', 'excerpt', 'thumbnail' ),
+		'supports' 					 => array( 'title', 'editor', 'excerpt', 'thumbnail', 'comments' ),
 		'taxonomies' 				 => array( 'genere', 'country', 'language', 'production-company' )
 	); 
 
@@ -933,6 +944,21 @@ function mdb_create_message_board( $post ){
 
 
 /**
+ * Get topics for a movie
+ */
+function mdb_get_topics( $movie_id ){
+	$forum_id = get_post_meta( $movie_id, '_mdb_message_board_id', true );
+
+	return get_posts( array(
+		'post_type' => 'topic',
+		'post_parent' => $forum_id,
+		'post_status' => 'publish',
+		'posts_per_page' => 10
+	) );
+}
+
+
+/**
  * Save meta information related to a movie
  * 
  * @param object $movie Post object of the movie being saved
@@ -1036,7 +1062,7 @@ function mdb_save_profile_meta( $profile ){
 			elseif( isset( $movie['name'] ) && strlen( trim( $movie['name'] ) ) >= 3 ){
 				$id = wp_insert_post( array(
 					'post_title'	=> trim( $movie['name'] ),
-					'post_type'		=> 'movie',
+					'post_type'		=> POST_TYPE,
 					'post_status'	=> 'draft' ) );
 				
 				$known_for[] = $id;
@@ -1106,8 +1132,8 @@ function mdb_get_filmography_data( $post = null ){
 	foreach( $results as $result ){
 		$set = $result->role;
 
-		if( '' == $result->role ) $set = 'Miscellaneous';
-		if( 'cast' == $result->type ) $set = 'Artist';
+		if( '' == $result->role ) $set = __( 'Miscellaneous', 'mdb' );
+		if( 'cast' == $result->type ) $set = __( 'Artist', 'mdb' );
 
 		$data[$set][] = $result; // Just grouping rows by roles
 	}
@@ -1116,7 +1142,347 @@ function mdb_get_filmography_data( $post = null ){
 }
 
 
+/**
+ * Row data from database query to get crew information of a movie
+ */
+function mdb_get_movie_crew( $post = null ){
+	if( null == $post ) global $post;
+	if( is_integer( $post ) ) $post = get_post( $post );
+
+	global $wpdb;
+
+	$results = $wpdb->get_results( "SELECT *
+		FROM {$wpdb->prefix}movie_cast_n_crew 
+		WHERE (
+			movie='$post->ID'
+			AND
+			(
+				type='crew'
+				OR
+				(
+					type='cast'
+					AND
+					featured=1
+				)
+			)
+		) ORDER BY type DESC" );
+
+	$data = array();
+	foreach( $results as $result ){
+		$set = $result->role;
+
+		if( '' == $result->role ) $set = __( 'Miscellaneous', 'mdb' );
+		if( 'cast' == $result->type ) $set = __( 'Stars', 'mdb' );
+
+		$data[$set][] = $result; // Just grouping rows by roles
+	}
+
+	unset( $data[__( 'Miscellaneous', 'mdb' )] ); // Remove Miscellaneous crew (they are not important)
+
+	return $data;
+}
+
+/**
+ * Get the list of crew from database assigned to a particular movie
+ */
+function mdb_get_cast_list( $post = null ){
+	global $wpdb;
+	if( null == $post ) global $post;
+	if( is_integer( $post ) ) $post = get_post( $post );
+	if( !is_object( $post ) || POST_TYPE != $post->post_type ) return false;
+
+	$casts = $wpdb->get_results( "SELECT * FROM `{$wpdb->prefix}movie_cast_n_crew` 
+			WHERE `movie`='$post->ID' AND `type`='cast' ORDER BY featured DESC;" );
+
+	return $casts;
+}
 
 
+/**
+ * Returns the overall rating information html for a movie.
+ */
+function mdb_review_block( $post = null ){
+	if( null == $post ) global $post;
+	if( is_integer( $post ) ) $post = get_post( $post );
+	if( !is_object( $post ) || POST_TYPE != $post->post_type ) return false;
+
+	global $wpdb;
+	$rating = $wpdb->get_row("
+		SELECT AVG($wpdb->commentmeta.meta_value) as rating_average, COUNT(*) as rating_count
+		FROM $wpdb->commentmeta
+		INNER JOIN $wpdb->comments on $wpdb->comments.comment_id=$wpdb->commentmeta.comment_id
+		WHERE $wpdb->commentmeta.meta_key='movie_rating' 
+		AND $wpdb->comments.comment_post_id=$post->ID 
+		AND $wpdb->comments.comment_approved =1 ;");
+
+	?>
+	<div class="mdb-rating-stars" data-readonly="true" data-value="<?php echo $rating->rating_average; ?>"></div>
+	<div class="mdb-rating-info">
+		<?php 
+		echo "$rating->rating_average/10, $rating->rating_count ratings.";
+		?>
+	</div>
+	<?php
+}
+
+/**
+ * Displays attachment thumbnails in movies
+ */
+function mdb_movie_attachment_block( $post = null ){
+	if( null == $post ) global $post;
+	if( is_integer( $post ) ) $post = get_post( $post );
+	if( !is_object( $post ) || POST_TYPE != $post->post_type ) return false;
+
+	ob_start();
+	
+	echo '<div class="mdb-attachment-wrapper">';
+
+	$attachments = get_posts( array(
+	    'post_type' => 'attachment',
+	    'posts_per_page' => -1,
+	    'post_parent' => $post->ID,
+	    'exclude'     => get_post_thumbnail_id() ) );
+
+	if ( $attachments ) {
+	    foreach ( $attachments as $attachment ) {
+	    	$image_src = wp_get_attachment_image_src( $attachment->ID, 'full' );
+
+
+	        echo '<div>' 
+	        . '<a href="' . $image_src[0] . '" class="fancybox">'
+	        . wp_get_attachment_image( $attachment->ID, 'thumbnail' )
+	        . '</a>'
+	        . '</div>';
+	    }
+	}
+
+	echo '</div>';
+}
+
+
+/**
+ * Echoes javascript in front end wp_footer.
+ */
+function mdb_footer_js(){
+?>
+	<script>
+	jQuery(document).ready(function($){
+		<?php global $post; if( is_single() && POST_TYPE == $post->post_type ):?>
+		$('.mdb-storyline').readmore();
+		$('.mdb-attachment-wrapper').slick({
+			arrows: true,
+			dots: true,
+			infinite: false,
+			speed: 300,
+			slidesToShow: 6,
+			slidesToScroll: 4,
+			lazyLoad: 'ondemand',
+			responsive: [
+			{
+				breakpoint: 1025,
+				settings: {
+					slidesToShow: 4,
+					slidesToScroll: 2,
+					dots: false
+				}
+			},
+			{
+				breakpoint: 768,
+				settings: {
+					slidesToShow: 2,
+					slidesToScroll: 1,
+					dots: false
+				}
+			},
+			{
+				breakpoint: 480,
+				settings: {
+					slidesToShow: 1,
+					slidesToScroll: 1,
+					dots: false
+				}
+			}]
+		});
+		$('.fancybox').fancybox({margin: 100});
+
+
+		// Star rating
+		var update_rating_display = function( el ){
+			var width = $(el).attr('data-value') / 10 * 100;
+			$(el).find('.progress').css('width', width+'%');
+		}
+
+		$('.mdb-rating-stars:not(.visible)')
+			.addClass('visible')
+			.prepend('<div class="progress"></div>')
+			.each(function(){
+				if('false' == $(this).attr('data-readonly'))
+					$(this).append('<span></span>')
+						.append('<span></span>')
+						.append('<span></span>')
+						.append('<span></span>')
+						.append('<span></span>')
+						.append('<span></span>')
+						.append('<span></span>')
+						.append('<span></span>')
+						.append('<span></span>')
+						.append('<span></span>');
+				update_rating_display(this);
+			});
+
+		$('.mdb-rating-stars.visible').each(function(){
+			var holder = this;
+
+			$(holder).find('span').click(function(){
+				$(holder).attr('data-value', $(this).index());
+				update_rating_display(holder);
+
+				var field = $(holder).attr('data-field');
+				$(field).val($(this).index());
+			});
+
+		});
+
+		<?php elseif( is_single() && 'profile' == $post->post_type ):?>
+		$('.mdb-images').slick({
+			arrows: true,
+			dots: true,
+			infinite: false,
+			speed: 300,
+			slidesToShow: 6,
+			slidesToScroll: 4,
+			lazyLoad: 'ondemand',
+			responsive: [
+			{
+				breakpoint: 1025,
+				settings: {
+					slidesToShow: 4,
+					slidesToScroll: 2,
+					dots: false
+				}
+			},
+			{
+				breakpoint: 768,
+				settings: {
+					slidesToShow: 2,
+					slidesToScroll: 1,
+					dots: false
+				}
+			},
+			{
+				breakpoint: 480,
+				settings: {
+					slidesToShow: 1,
+					slidesToScroll: 1,
+					dots: false
+				}
+			}]
+		});
+		$('.mdb-known-for').slick({
+			slidesToShow: 4,
+			lazyLoad: 'ondemand',
+			dots: false,
+			responsive: [
+			{
+				breakpoint: 768,
+				settings: {
+					slidesToShow: 2
+				}
+			},
+			{
+				breakpoint: 480,
+				settings: {
+					slidesToShow: 1
+				}
+			}]
+		});
+
+		$('.fancybox').fancybox({margin: 100});
+		<?php endif; ?>
+	});
+	</script>
+<?php
+}
+add_action('wp_footer', 'mdb_footer_js');
+
+
+/**
+ * Add the rating field in a movie
+ */
+function mdb_comment_form_rating_option( $comment ) {
+	global $post;
+
+	if( !isset( $comment->comment_ID ) ){
+		$existing_rating = 0;
+	}
+	else {
+		$existing_rating = get_comment_meta( $comment->comment_ID, 'movie_rating', true );
+		if( '' == $existing_rating ) $existing_rating = 0;
+	}
+
+
+	if( POST_TYPE != $post->post_type ) return;
+	?>
+	<p class="comment-form-rating">
+		<label for="movie-rating"><?php _e( 'Movie Rating', 'mdb' );?></label>
+		<br>
+		<div class="mdb-rating-stars" data-readonly="false" data-field="#movie-rating" data-value="<?php echo $existing_rating; ?>"></div>
+		<input type="hidden" id="movie-rating" name="movie_rating" value="<?php echo $existing_rating; ?>" />
+	</p>
+	<?php
+}
+add_action( 'comment_form_logged_in_after', 'mdb_comment_form_rating_option' );
+add_action( 'comment_form_after_fields', 'mdb_comment_form_rating_option' );
+
+
+/**
+ * Save the rating for a movie.
+ */
+function mdb_save_movie_rating( $comment_id, $comment ){
+	if( !isset( $_POST['movie_rating'] ) ) return;
+
+	$existing_ratings = get_comments(
+		array(
+			'post_id' => $comment->post_ID,
+			'author_email' => $comment->comment_author_email,
+			'meta_key' => 'movie_rating' ) );
+
+	/**
+	 * If there is already a review from this author, ignore.
+	 */
+	if( !empty( $existing_ratings ) ) return;
+
+	/**
+	 * Is rating too high or too low?
+	 */
+	$_POST['movie_rating'] = (int) $_POST['movie_rating'];
+	$_POST['movie_rating'] = max( 0, $_POST['movie_rating'] );
+	$_POST['movie_rating'] = min( 10, $_POST['movie_rating'] );
+
+	/**
+	 * Don't save if rating is not even 1 star.
+	 */
+	if( 1 > $_POST['movie_rating'] ) return;
+
+
+	update_comment_meta( $comment_id, 'movie_rating', $_POST[ 'movie_rating' ] );
+}
+add_action( 'wp_insert_comment', 'mdb_save_movie_rating', 10, 2 );
+
+
+/**
+ * Display rating before the comment text
+ */
+function mdb_display_rating_comment( $comment_text, $comment ){
+	$rating = get_comment_meta( $comment->comment_ID, 'movie_rating', true );
+	$rating = max( 0, $rating );
+	$rating = min( 10, $rating );
+	if( $rating < 1 ) return $comment_text;
+
+	return '<div style="clear:both"></div>' 
+		. '<div class="mdb-rating-stars" data-readonly="true" data-value="'.$rating.'"></div>'
+		. $comment_text;
+}	
+add_filter( 'comment_text', 'mdb_display_rating_comment', 10, 2 );
 
 

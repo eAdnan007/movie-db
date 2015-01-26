@@ -87,7 +87,7 @@ jQuery(document).ready(function($){
 				$(this).parent().parent().children('.crew_list_resizer, .cast_list_resizer').children('.profile_id').val( 0 );
 			}
 		})
-		.autocomplete( "instance" )._renderItem = function( ul, item ) {
+		._renderItem = function( ul, item ) {
 			return $( "<li>" )
 			.append( "<a>" + item.label + "</a>" )
 			.appendTo( ul );
