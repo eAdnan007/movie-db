@@ -15,7 +15,7 @@ if($_SERVER['SCRIPT_FILENAME'] == __FILE__)
   exit;
 }
 
-define( 'POST_TYPE', 'post' );
+define( 'MDB_POST_TYPE', 'post' );
 
 /**
  * Do things that are needed to be done on plugin init.
@@ -50,14 +50,16 @@ function mdb_debug( $data, $var_dump = false ){
 function mdb_activated(){
 	global $wpdb;
 	
-	$wpdb->query("CREATE TABLE IF NOT EXISTS `{$wpdb->prefix}movie_cast_n_crew` (
+	$wpdb->query("CREATE TABLE `{$wpdb->prefix}movie_cast_n_crew` (
 		  `ID` int(11) unsigned NOT NULL AUTO_INCREMENT,
 		  `movie` int(11) unsigned NOT NULL,
 		  `profile` int(11) unsigned NOT NULL,
-		  `role` varchar(50) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+		  `role` varchar(50) COLLATE utf8_unicode_ci DEFAULT NULL,
+		  `task` varchar(30) COLLATE utf8_unicode_ci DEFAULT NULL,
 		  `type` varchar(5) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+		  `featured` tinyint(1) DEFAULT '0',
 		  PRIMARY KEY (`ID`)
-		) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;");
+		) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=1;");
 }
 register_activation_hook(__FILE__, 'mdb_activated');
 
@@ -65,7 +67,7 @@ register_activation_hook(__FILE__, 'mdb_activated');
  * Add featured image support to movies and profiles
  */
 function mdb_support_featured_image(){
-	add_theme_support( 'post_thumbnails', array( POST_TYPE, 'profile' ) );
+	add_theme_support( 'post_thumbnails', array( MDB_POST_TYPE, 'profile' ) );
 	add_image_size( 'small-thumb', 50, 50, true );
 }
 add_action( 'after_setup_theme', 'mdb_support_featured_image' );
@@ -167,7 +169,7 @@ function mdb_register_things() {
 		'rewrite'              		 => array( 'slug' => 'genere' ),
 	);
 
-	register_taxonomy( 'genere', POST_TYPE, $args );
+	register_taxonomy( 'genere', MDB_POST_TYPE, $args );
 
 	$labels = array(
 		'name'                       => _x( 'Countries', 'taxonomy general name', 'mdb' ),
@@ -198,7 +200,7 @@ function mdb_register_things() {
 		'rewrite'               	 => array( 'slug' => 'country' ),
 	);
 
-	register_taxonomy( 'country', POST_TYPE, $args );
+	register_taxonomy( 'country', MDB_POST_TYPE, $args );
 
 	$labels = array(
 		'name'                       => _x( 'Languages', 'taxonomy general name', 'mdb' ),
@@ -229,7 +231,7 @@ function mdb_register_things() {
 		'rewrite'               	 => array( 'slug' => 'language' ),
 	);
 
-	register_taxonomy( 'language', POST_TYPE, $args );
+	register_taxonomy( 'language', MDB_POST_TYPE, $args );
 
 	$labels = array(
 		'name'                       => _x( 'Production Companies', 'taxonomy general name', 'mdb' ),
@@ -260,7 +262,7 @@ function mdb_register_things() {
 		'rewrite'               	 => array( 'slug' => 'production-company' ),
 	);
 
-	register_taxonomy( 'production-company', POST_TYPE, $args );
+	register_taxonomy( 'production-company', MDB_POST_TYPE, $args );
 
 	
 	$labels = array(
@@ -294,7 +296,7 @@ function mdb_register_things() {
 		'taxonomies' 				 => array( 'genere', 'country', 'language', 'production-company' )
 	); 
 
-	if( 'movie' == POST_TYPE ) register_post_type( 'movie', $args );
+	if( 'movie' == MDB_POST_TYPE ) register_mdb_Post_type( 'movie', $args );
 
 
 
@@ -357,7 +359,7 @@ function mdb_register_things() {
 		'capability_type' 			 => 'post',
 		'has_archive' 				 => true, 
 		'hierarchical' 				 => false,
-		'show_in_menu'				 => POST_TYPE == 'post' ? 'edit.php' : 'edit.php?post_type='.POST_TYPE,
+		'show_in_menu'				 => MDB_POST_TYPE == 'post' ? 'edit.php' : 'edit.php?mdb_Post_type='.MDB_POST_TYPE,
 		'supports' 					 => array( 'title', 'editor', 'excerpt', 'thumbnail' ),
 		'taxonomies' 				 => array( 'role' )
 	); 
@@ -374,7 +376,7 @@ function mdb_change_excerpt_box_title() {
 	remove_meta_box( 'postexcerpt', 'movie', 'side' );
 	add_meta_box('postexcerpt', __( 'Summery', 'mdb' ), 'post_excerpt_meta_box', 'movie', 'normal', 'high');
 }
-if( 'movie' == POST_TYPE ) add_action( 'admin_init',  'mdb_change_excerpt_box_title' );
+if( 'movie' == MDB_POST_TYPE ) add_action( 'admin_init',  'mdb_change_excerpt_box_title' );
 
 
 /**
@@ -382,10 +384,10 @@ if( 'movie' == POST_TYPE ) add_action( 'admin_init',  'mdb_change_excerpt_box_ti
  */
 function mdb_add_metabox(){
 	/* Metaboxes for Movie post type */
-	add_meta_box( 'mdb-movie-details', __( 'Movie details', 'mdb' ), 'mdb_movie_details_metabox_content', POST_TYPE, 'normal', 'high', null );
-	add_meta_box( 'mdb-movie-box-office', __( 'Box Office', 'mdb' ), 'mdb_movie_box_office_metabox_content', POST_TYPE, 'normal', 'high', null );
-	add_meta_box( 'mdb-movie-crew', __( 'Movie Crew', 'mdb' ), 'mdb_movie_crew_metabox_content', POST_TYPE, 'normal', 'high', null );
-	add_meta_box( 'mdb-movie-cast', __( 'Cast', 'mdb' ), 'mdb_movie_cast_metabox_content', POST_TYPE, 'normal', 'high', null );
+	add_meta_box( 'mdb-movie-details', __( 'Movie details', 'mdb' ), 'mdb_movie_details_metabox_content', MDB_POST_TYPE, 'normal', 'high', null );
+	add_meta_box( 'mdb-movie-box-office', __( 'Box Office', 'mdb' ), 'mdb_movie_box_office_metabox_content', MDB_POST_TYPE, 'normal', 'high', null );
+	add_meta_box( 'mdb-movie-crew', __( 'Movie Crew', 'mdb' ), 'mdb_movie_crew_metabox_content', MDB_POST_TYPE, 'normal', 'high', null );
+	add_meta_box( 'mdb-movie-cast', __( 'Cast', 'mdb' ), 'mdb_movie_cast_metabox_content', MDB_POST_TYPE, 'normal', 'high', null );
 
 	/* Metaboxes for Profile post type */
 	add_meta_box(
@@ -913,7 +915,7 @@ function mdb_profile_birth_info_metabox_content(){
 function mdb_save_meta( $post_id ) {
 	$post = get_post( $post_id );
 
-	if( POST_TYPE == $post->post_type ){
+	if( MDB_POST_TYPE == $post->post_type ){
 		mdb_save_movie_meta( $post );
 		mdb_create_message_board( $post );
 	}
@@ -1062,7 +1064,7 @@ function mdb_save_profile_meta( $profile ){
 			elseif( isset( $movie['name'] ) && strlen( trim( $movie['name'] ) ) >= 3 ){
 				$id = wp_insert_post( array(
 					'post_title'	=> trim( $movie['name'] ),
-					'post_type'		=> POST_TYPE,
+					'post_type'		=> MDB_POST_TYPE,
 					'post_status'	=> 'draft' ) );
 				
 				$known_for[] = $id;
@@ -1087,7 +1089,7 @@ function mdb_get_posts_like( $term = null ){
 	header('Content-type: application/json');
 
 	if( 'get-profiles' == $_REQUEST['action'] ) $post_type = 'profile';
-	if( 'get-movies' == $_REQUEST['action'] ) $post_type = POST_TYPE;
+	if( 'get-movies' == $_REQUEST['action'] ) $post_type = MDB_POST_TYPE;
 
 	$posts = get_posts(
 		array(
@@ -1103,7 +1105,7 @@ function mdb_get_posts_like( $term = null ){
 		$custom_post['label']	= $post->post_title;
 		
 		if( 'profile' == $post_type ) $custom_post['thumb']		= mdb_get_profile_thumb( $post->ID );
-		if( POST_TYPE == $post_type ) $custom_post['thumb']		= mdb_get_movie_poster( $post->ID );
+		if( MDB_POST_TYPE == $post_type ) $custom_post['thumb']		= mdb_get_movie_poster( $post->ID );
 		
 		$custom_posts[] = $custom_post;
 	}
@@ -1189,7 +1191,7 @@ function mdb_get_cast_list( $post = null ){
 	global $wpdb;
 	if( null == $post ) global $post;
 	if( is_integer( $post ) ) $post = get_post( $post );
-	if( !is_object( $post ) || POST_TYPE != $post->post_type ) return false;
+	if( !is_object( $post ) || MDB_POST_TYPE != $post->post_type ) return false;
 
 	$casts = $wpdb->get_results( "SELECT * FROM `{$wpdb->prefix}movie_cast_n_crew` 
 			WHERE `movie`='$post->ID' AND `type`='cast' ORDER BY featured DESC;" );
@@ -1204,7 +1206,7 @@ function mdb_get_cast_list( $post = null ){
 function mdb_review_block( $post = null ){
 	if( null == $post ) global $post;
 	if( is_integer( $post ) ) $post = get_post( $post );
-	if( !is_object( $post ) || POST_TYPE != $post->post_type ) return false;
+	if( !is_object( $post ) || MDB_POST_TYPE != $post->post_type ) return false;
 
 	global $wpdb;
 	$rating = $wpdb->get_row("
@@ -1231,7 +1233,7 @@ function mdb_review_block( $post = null ){
 function mdb_movie_attachment_block( $post = null ){
 	if( null == $post ) global $post;
 	if( is_integer( $post ) ) $post = get_post( $post );
-	if( !is_object( $post ) || POST_TYPE != $post->post_type ) return false;
+	if( !is_object( $post ) || MDB_POST_TYPE != $post->post_type ) return false;
 
 	ob_start();
 	
@@ -1267,7 +1269,7 @@ function mdb_footer_js(){
 ?>
 	<script>
 	jQuery(document).ready(function($){
-		<?php global $post; if( is_single() && POST_TYPE == $post->post_type ):?>
+		<?php global $post; if( is_single() && MDB_POST_TYPE == $post->post_type ):?>
 		$('.mdb-storyline').readmore();
 		$('.mdb-attachment-wrapper').slick({
 			arrows: true,
@@ -1421,7 +1423,7 @@ function mdb_comment_form_rating_option( $comment ) {
 	}
 
 
-	if( POST_TYPE != $post->post_type ) return;
+	if( MDB_POST_TYPE != $post->post_type ) return;
 	?>
 	<p class="comment-form-rating">
 		<label for="movie-rating"><?php _e( 'Movie Rating', 'mdb' );?></label>
